@@ -1,1 +1,3 @@
 packaged.yaml
+env/
+__pycache__/
