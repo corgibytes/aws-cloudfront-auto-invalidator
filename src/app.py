@@ -1,6 +1,7 @@
 from __future__ import print_function
 import boto3
 import json
+import re
 import urllib
 import time
 
@@ -8,7 +9,7 @@ cloudfront_client = boto3.client('cloudfront')
 
 
 def get_cloudfront_distribution_id(bucket):
-    bucket_origin = bucket + '.s3.amazonaws.com'
+    bucket_origin = re.compile(bucket + r'.s3(-website-[A-Za-z0-9-]+)?.amazonaws.com')
     cf_distro_id = None
 
     # Create a reusable Paginator
@@ -21,7 +22,7 @@ def get_cloudfront_distribution_id(bucket):
         for distribution in page['DistributionList']['Items']:
             for cf_origin in distribution['Origins']['Items']:
                 print("Origin found {}".format(cf_origin['DomainName']))
-                if bucket_origin == cf_origin['DomainName']:
+                if bucket_origin.match(cf_origin['DomainName']):
                     cf_distro_id = distribution['Id']
                     print("The CF distribution ID for {} is {}".format(bucket, cf_distro_id))
 
