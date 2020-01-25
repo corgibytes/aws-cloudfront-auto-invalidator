@@ -6,8 +6,8 @@ import time
 
 cloudfront_client = boto3.client('cloudfront')
 
+
 def get_cloudfront_distribution_id(bucket):
-    
     bucket_origin = bucket + '.s3.amazonaws.com'
     cf_distro_id = None
 
@@ -20,10 +20,10 @@ def get_cloudfront_distribution_id(bucket):
     for page in page_iterator:
         for distribution in page['DistributionList']['Items']:
             for cf_origin in distribution['Origins']['Items']:
-                    print("Origin found {}".format(cf_origin['DomainName']))
-                    if bucket_origin == cf_origin['DomainName']:
-                            cf_distro_id = distribution['Id']
-                            print("The CF distribution ID for {} is {}".format(bucket,cf_distro_id))
+                print("Origin found {}".format(cf_origin['DomainName']))
+                if bucket_origin == cf_origin['DomainName']:
+                    cf_distro_id = distribution['Id']
+                    print("The CF distribution ID for {} is {}".format(bucket, cf_distro_id))
 
     return cf_distro_id
 
@@ -42,7 +42,7 @@ def lambda_handler(event, context):
 
     if not key.startswith('/'):
         key = '/' + key
- 
+
     cf_distro_id = get_cloudfront_distribution_id(bucket)
 
     if cf_distro_id:
@@ -63,6 +63,6 @@ def lambda_handler(event, context):
             print("Error processing object {} from bucket {}. Event {}".format(key, bucket, json.dumps(event, indent=2)))
             raise e
     else:
-        print("Bucket {} does not appeaer to be an origin for a Cloudfront distribution".format(bucket))
+        print("Bucket {} does not appear to be an origin for a Cloudfront distribution".format(bucket))
 
     return 'Success'
