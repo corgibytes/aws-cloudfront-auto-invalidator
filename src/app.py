@@ -44,6 +44,10 @@ def lambda_handler(event, context):
     if not key.startswith('/'):
         key = '/' + key
 
+    items = [key]
+    if key.endswith('/index.html'):
+        items.append(key.replace('/index.html', '/'))
+
     cf_distro_id = get_cloudfront_distribution_id(bucket)
 
     if cf_distro_id:
@@ -53,8 +57,8 @@ def lambda_handler(event, context):
             invalidation = cloudfront_client.create_invalidation(DistributionId=cf_distro_id,
                     InvalidationBatch={
                     'Paths': {
-                            'Quantity': 1,
-                            'Items': [key]
+                            'Quantity': len(items),
+                            'Items': items
                     },
                     'CallerReference': str(time.time())
             })
