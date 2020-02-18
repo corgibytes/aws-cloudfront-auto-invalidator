@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 OPERATION=$1
 DEPLOY_BUCKET=$2
 CONTENT_BUCKET=$3
@@ -64,11 +66,11 @@ aws lambda add-permission \
     --function-name ${FUNCTION_NAME} \
     --region ${REGION} \
     --profile ${PROFILE} \
-    --statement-id "s3perms-${CONTENT_BUCKET}" \
+    --statement-id "s3perms-${CONTENT_BUCKET//[^a-zA-Z0-9-_]/_}" \
     --action "lambda:InvokeFunction" \
     --principal s3.amazonaws.com \
     --source-arn arn:aws:s3:::${CONTENT_BUCKET} \
-    --source-account ${AWS_ACCOUNT_ID} > /dev/null 2>&1
+    --source-account ${AWS_ACCOUNT_ID}
 
 # Subscribe the lambda to S3 events for our specific bucket
 S3_LAMBDA_EVENT_SUBSCRIPTION="{\"LambdaFunctionConfigurations\":[{\"LambdaFunctionArn\":\"${FUNCTION_ARN}\",\"Events\":[\"s3:ObjectCreated:*\"]}]}"
@@ -78,4 +80,4 @@ aws s3api put-bucket-notification-configuration \
     --bucket ${CONTENT_BUCKET} \
     --notification-configuration ${S3_LAMBDA_EVENT_SUBSCRIPTION} \
     --region ${REGION} \
-    --profile ${PROFILE} \
+    --profile ${PROFILE}
