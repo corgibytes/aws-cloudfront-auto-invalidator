@@ -1,14 +1,15 @@
 from __future__ import print_function
 import boto3
 import json
+import re
 import urllib
 import time
 
 cloudfront_client = boto3.client('cloudfront')
 
+
 def get_cloudfront_distribution_id(bucket):
-    
-    bucket_origin = bucket + '.s3.amazonaws.com'
+    bucket_origin = re.compile(bucket + r'.s3(-website-[A-Za-z0-9-]+)?.amazonaws.com')
     cf_distro_id = None
 
     # Create a reusable Paginator
@@ -20,10 +21,10 @@ def get_cloudfront_distribution_id(bucket):
     for page in page_iterator:
         for distribution in page['DistributionList']['Items']:
             for cf_origin in distribution['Origins']['Items']:
-                    print("Origin found {}".format(cf_origin['DomainName']))
-                    if bucket_origin == cf_origin['DomainName']:
-                            cf_distro_id = distribution['Id']
-                            print("The CF distribution ID for {} is {}".format(bucket,cf_distro_id))
+                print("Origin found {}".format(cf_origin['DomainName']))
+                if bucket_origin.match(cf_origin['DomainName']):
+                    cf_distro_id = distribution['Id']
+                    print("The CF distribution ID for {} is {}".format(bucket, cf_distro_id))
 
     return cf_distro_id
 
@@ -42,7 +43,11 @@ def lambda_handler(event, context):
 
     if not key.startswith('/'):
         key = '/' + key
- 
+
+    items = [key]
+    if key.endswith('/index.html'):
+        items.append(key.replace('/index.html', '/'))
+
     cf_distro_id = get_cloudfront_distribution_id(bucket)
 
     if cf_distro_id:
@@ -52,8 +57,8 @@ def lambda_handler(event, context):
             invalidation = cloudfront_client.create_invalidation(DistributionId=cf_distro_id,
                     InvalidationBatch={
                     'Paths': {
-                            'Quantity': 1,
-                            'Items': [key]
+                            'Quantity': len(items),
+                            'Items': items
                     },
                     'CallerReference': str(time.time())
             })
@@ -63,6 +68,6 @@ def lambda_handler(event, context):
             print("Error processing object {} from bucket {}. Event {}".format(key, bucket, json.dumps(event, indent=2)))
             raise e
     else:
-        print("Bucket {} does not appeaer to be an origin for a Cloudfront distribution".format(bucket))
+        print("Bucket {} does not appear to be an origin for a Cloudfront distribution".format(bucket))
 
     return 'Success'
